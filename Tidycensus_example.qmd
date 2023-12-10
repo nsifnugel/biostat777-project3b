@@ -121,11 +121,11 @@ summary_stats <- public_transit_boston %>%
 
 as_tibble(summary_stats[[1]]) %>%
   select(population,percent_total,estimate) %>% 
-  filter(population!="total public transit") %>% 
   rename(Factor = population,
          "Percent (%)" = percent_total,
          "Estimate (# of people)" = estimate,) %>% 
-  mutate(Factor = str_replace_all(Factor,"public transit: ",ifelse(grepl("\\$",Factor),"Earnings: ","Owns "))) %>% 
+  mutate(Factor = str_replace_all(Factor,"public transit: ",ifelse(grepl("\\$",Factor),"Earnings: ","Owns ")),
+         Factor = str_replace(Factor,"total public transit","Workers Using Public Transit")) %>% 
   gt() %>%
   tab_spanner(label = "Workers Using Public Transportation", 
               columns = c(Factor,"Estimate (# of people)","Percent (%)"))
@@ -199,11 +199,8 @@ public_transit_boston %>%
 
 #### Trends in Ridership Among Working Population
 
-```{r}
-years <- c(2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022)
-
-if (any(!file.exists(here("~/Desktop/data", "estimates_years.RDS")))) {
-  acs <- function(x) {
+```{r warning=FALSE,output=FALSE, message=FALSE}
+acs <- function(x) {
         estimates <-  get_acs(geography = "county",
                   state = "MA",
                   county = "Suffolk",
@@ -211,7 +208,11 @@ if (any(!file.exists(here("~/Desktop/data", "estimates_years.RDS")))) {
                   year = x)
         estimates$year <- x
         return(estimates)
-    }  
+    }
+
+years <- c(2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022)
+
+if (any(!file.exists(here("~/Desktop/data", "estimates_years.RDS")))) {
   estimates_years <- map_dfc(years,acs)
   saveRDS(estimates_years, file = here("~/Desktop/data","estimates_years.RDS"))
 } else {estimates_years <- readRDS(here("~/Desktop/data","estimates_years.RDS"))
@@ -244,24 +245,26 @@ estimates_years %>%
   labs(x = "Year",
        y = "Percent of Workers Using Public Transit",
        title = "Percent of Workers Using Public Transportation by Year",
-       subtitle = "Worker ridership was consistent for over a decade. Rates began decreasing during the\npandemic and have not recovered.",
+       subtitle = "Worker ridership was consistent for a decade. Rates began decreasing during the\npandemic and have not recovered.",
        caption = "Source: American Community Survey: 1-Year Estimates (2009-2022)")
 ```
 
 #### Trends in Income >$75k Among Working Population
 
 ```{r warning=FALSE,output=FALSE, message=FALSE}
-if (any(!file.exists(here("~/Desktop/data", "wealth_years.RDS")))) {
-  acs_wealth <- function(x) {
+
+acs_wealth <- function(x) {
     estimates <-  get_acs(geography = "county",
                         state = "MA",
                         county = "Suffolk",
                         variables = c("B08301_001E","B08119_009E"),
                         year = x)
-    estimates$year <- x
-    return(estimates)
+      estimates$year <- x
+      return(estimates)
   } 
 
+
+if (any(!file.exists(here("~/Desktop/data", "wealth_years.RDS")))) {
   wealth_years <- map_dfc(years,acs_wealth)
   saveRDS(wealth_years, file = here("~/Desktop/data","wealth_years.RDS"))
 } else {wealth_years <- readRDS(here("~/Desktop/data","wealth_years.RDS"))
